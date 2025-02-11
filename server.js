@@ -714,6 +714,7 @@ GROUP BY m."materialId";
 
     `);
 
+    console.log('Material_3Month_AvgConsumption created');
 
     await prisma.$executeRawUnsafe(
         `CREATE OR REPLACE VIEW Material_3Month_AvgConsumption AS 
@@ -759,6 +760,8 @@ GROUP BY m."materialId";
             m."materialId", m."description";
     `)
 
+    console.log('material_avgconsumption created');
+
     await prisma.$executeRawUnsafe(`
         CREATE OR REPLACE VIEW "material_proposed_view" AS
         SELECT m."materialId",
@@ -767,7 +770,9 @@ GROUP BY m."materialId";
      JOIN material_master m ON p."materialNo" = m."materialId";`
     )
 
-    prisma.$executeRawUnsafe(`
+    console.log('material_proposed_view created');
+
+    await prisma.$executeRawUnsafe(`
         CREATE OR REPLACE VIEW material_avgconsumption_proposed AS 
         SELECT 
         m3."materialId",
@@ -778,7 +783,9 @@ GROUP BY m."materialId";
 
     `)
 
-    prisma.$executeRawUnsafe(`
+    console.log('material_avgconsumption_proposed created');
+
+    await prisma.$executeRawUnsafe(`
 
         CREATE OR REPLACE VIEW material_avgconsumption_forecast_sap AS 
 SELECT 
@@ -801,6 +808,8 @@ WHERE TO_DATE(
     WHERE mf2."materialId" = macp."materialId"
 );
     `)
+
+    console.log('material_avgconsumption_forecast_sap created');
 
     //old view
     // await prisma.$executeRawUnsafe(`
@@ -826,6 +835,7 @@ WHERE TO_DATE(
         ON "material_stock"."materialId" = "material_grn"."materialId";
         `)
 
+    console.log('material_grn_stock_view created');
 
     await prisma.$executeRawUnsafe(`
     
@@ -858,7 +868,7 @@ LEFT JOIN material_ppo p ON c."materialId" = p."materialId"::text;
 
 
 
-    console.log('View ProcessedMaterial created successfully');
+    console.log('material_summary view created');
 }
 
 // Start server
