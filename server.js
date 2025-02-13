@@ -552,7 +552,7 @@ app.get('/material-summary/download', async (req, res) => {
         `;
 
         const grnStockResult = await prisma.$queryRaw`
-            SELECT "materialId", "grnPlusStock" 
+            SELECT "materialId", "stockQuantity" , "grnQuantity"
             FROM "material_grn_stock_view";
         `;
 
@@ -590,7 +590,8 @@ app.get('/material-summary/download', async (req, res) => {
             return {
                 'Material ID': materialId,
                 'Description': item.details?.[0]?.description?.trim() || "N/A",
-                'GRN + Stock': grnStockMap.get(materialId)?.grnPlusStock || 0,
+                'GRN': grnStockMap.get(materialId)?.grnQuantity || 0,
+                'Stock': grnStockMap.get(materialId)?.stockQuantity || 0,
                 'Pending Quantity': ppoMap.get(materialId)?.pendingQuantity || 0,
                 'Supplier': ppoMap.get(materialId)?.supplier?.trim() || "N/A",
                 // Add last 6 months consumption if available
