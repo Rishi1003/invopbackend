@@ -393,8 +393,9 @@ app.get('/consumption-table/download', async (req, res) => {
                     row.maxConsumption.toString() : row.maxConsumption,
                 'Minimum Consumption': typeof row.minConsumption === 'bigint' ?
                     row.minConsumption.toString() : row.minConsumption,
-                'Average Consumption': typeof row.averageConsumption === 'number' ?
-                    row.averageConsumption.toFixed(2) : row.averageConsumption,
+                'Average Consumption': !isNaN(row.averageConsumption)
+                    ? Math.round(Number(row.averageConsumption))
+                    : "N/A",
             };
 
             // Add all month-year columns, even if no consumption data exists
@@ -479,6 +480,71 @@ app.get('/consumption-table/download', async (req, res) => {
 });
 
 
+// app.get('/forecast-table/download', async (req, res) => {
+//     try {
+//         // Fetch all data without pagination
+//         const result = await prisma.$queryRaw`
+//             SELECT * FROM "material_avgconsumption_forecast_sap";
+//         `;
+
+//         // Convert BigInt values to strings
+//         const processedData = result.map(row =>
+//             Object.fromEntries(
+//                 Object.entries(row).map(([key, value]) => [
+//                     key, typeof value === 'bigint' ? value.toString() : value
+//                 ])
+//             )
+//         );
+
+//         // Create Excel workbook
+//         const workbook = new ExcelJS.Workbook();
+//         const worksheet = workbook.addWorksheet('Forecast Table');
+
+//         // Add headers
+//         const headers = Object.keys(processedData[0] || {});
+//         worksheet.columns = headers.map(header => ({
+//             header,
+//             key: header,
+//             width: Math.max(15, header.length + 2) // Dynamic width based on header length
+//         }));
+
+//         // Add data
+//         worksheet.addRows(processedData);
+
+//         // Style the header row
+//         worksheet.getRow(1).font = { bold: true };
+//         worksheet.getRow(1).fill = {
+//             type: 'pattern',
+//             pattern: 'solid',
+//             fgColor: { argb: 'FFE0E0E0' }
+//         };
+
+//         // Auto-fit columns (optional, can be resource-intensive for large datasets)
+//         worksheet.columns.forEach(column => {
+//             column.alignment = { vertical: 'middle', horizontal: 'left' };
+//         });
+
+//         // Set content type and headers for file download
+//         res.setHeader(
+//             'Content-Type',
+//             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+//         );
+//         res.setHeader(
+//             'Content-Disposition',
+//             'attachment; filename=forecast-table.xlsx'
+//         );
+
+//         // Write to response
+//         await workbook.xlsx.write(res);
+//         res.end();
+
+//     } catch (error) {
+//         console.error("Error generating Excel file:", error);
+//         res.status(500).send({ message: error.message });
+//     }
+// });
+
+
 app.get('/forecast-table/download', async (req, res) => {
     try {
         // Fetch all data without pagination
@@ -486,12 +552,34 @@ app.get('/forecast-table/download', async (req, res) => {
             SELECT * FROM "material_avgconsumption_forecast_sap";
         `;
 
-        // Convert BigInt values to strings
+        // Mapping database column names to desired column names
+        const columnMappings = {
+            materialid: "Material ID",
+            material_description: "AMS Material Description",
+            latest_forecast_month: "Month/Year",
+            latest_forecast_value: "Forecasting for next month",
+            avgconsumption: "3 Month Average Consumption",
+            proposed_sap: "Proposed Quantity SAP (min-max)"
+        };
+
+        // Convert BigInt values to strings and apply transformations
         const processedData = result.map(row =>
             Object.fromEntries(
-                Object.entries(row).map(([key, value]) => [
-                    key, typeof value === 'bigint' ? value.toString() : value
-                ])
+                Object.entries(row).map(([key, value]) => {
+                    let newValue = value;
+
+                    // Convert BigInt to string
+                    if (typeof value === 'bigint') {
+                        newValue = value.toString();
+                    }
+
+                    // Convert and round avgconsumption if it's a number
+                    if (key === "avgconsumption" && !isNaN(value)) {
+                        newValue = Number(value).toFixed(2);
+                    }
+
+                    return [columnMappings[key] || key, newValue];
+                })
             )
         );
 
@@ -499,8 +587,8 @@ app.get('/forecast-table/download', async (req, res) => {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Forecast Table');
 
-        // Add headers
-        const headers = Object.keys(processedData[0] || {});
+        // Add headers using mapped column names
+        const headers = Object.values(columnMappings);
         worksheet.columns = headers.map(header => ({
             header,
             key: header,
@@ -542,6 +630,7 @@ app.get('/forecast-table/download', async (req, res) => {
         res.status(500).send({ message: error.message });
     }
 });
+
 
 app.get('/material-summary/download', async (req, res) => {
     try {
