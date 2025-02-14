@@ -593,7 +593,7 @@ app.get('/material-summary/download', async (req, res) => {
                 'GRN': grnStockMap.get(materialId)?.grnQuantity || 0,
                 'Stock': grnStockMap.get(materialId)?.stockQuantity || 0,
                 'Pending Quantity': ppoMap.get(materialId)?.pendingQuantity || 0,
-                'Supplier': ppoMap.get(materialId)?.supplier?.trim() || "N/A",
+                'Supplier': ppoMap.get(materialId)?.supplier?.match(/\b\d+\b/g)?.join(", ") || "N/A",
                 // Add last 6 months consumption if available
                 ...consumptionDetails.reduce((acc, detail) => {
                     acc[`Consumption ${detail.monthYear}`] = detail.quantity;
@@ -873,7 +873,7 @@ LEFT JOIN material_ppo p ON c."materialId" = p."materialId"::text;
 }
 
 // Start server
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
     try {
