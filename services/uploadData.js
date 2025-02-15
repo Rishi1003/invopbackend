@@ -480,8 +480,6 @@ async function processGrnCSV() {
         const stream = fs.createReadStream(csvFilePath).pipe(csv());
 
         stream.on('headers', (headers) => {
-            console.log('Headers:');
-            console.log(headers)
             const trimmedHeaders = headers.map(header => header.trim().toLowerCase());
             const expectedHeaders = requiredColumns.map(col => col.toLowerCase());
 
@@ -582,7 +580,6 @@ async function processStockCSV() {
         const stream = fs.createReadStream(csvFilePath).pipe(csv());
 
         stream.on('headers', (headers) => {
-            console.log('Headers:', headers);
             const trimmedHeaders = headers.map(header => header.trim().toLowerCase());
             const expectedHeaders = requiredColumns.map(col => col.toLowerCase());
 

@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 import { processMaterialMasterCSV, processTimeMasterCSV, processMaterialConsumptionCSV, processMaterialForecastingCSV, processProposedSapCSV, processGrnCSV, processStockCSV, processPpoCSV } from "./services/uploadData.js"
 import cors from 'cors'
 import ExcelJS from 'exceljs';
+import fs from "fs"
+import https from "https"
 
 // Initialize Express and Prisma
 const app = express();
@@ -261,8 +263,6 @@ app.get('/material-summary', async (req, res) => {
             FROM "material_ppo";
         `;
 
-        console.log('Consumption Result:');
-        console.log(consumptionResult);
 
         // Convert BigInt to String for ALL results
         const formatBigInt = (row) => {
@@ -575,7 +575,7 @@ app.get('/forecast-table/download', async (req, res) => {
 
                     // Convert and round avgconsumption if it's a number
                     if (key === "avgconsumption" && !isNaN(value)) {
-                        newValue = Number(value).toFixed(2);
+                        newValue = Math.round(Number(value).toFixed(2));
                     }
 
                     return [columnMappings[key] || key, newValue];
@@ -963,6 +963,24 @@ LEFT JOIN material_ppo p ON c."materialId" = p."materialId"::text;
 
 // Start server
 const PORT = process.env.PORT || 8000;
+
+// const options = {
+//     key: fs.readFileSync('./certs/server.key'),
+//     cert: fs.readFileSync('./certs/server.cert')
+// };
+
+// https.createServer(options, app).listen(8000, async () => {
+//     console.log('HTTPS Server running on port 8000');
+//     try {
+//         await prisma.$connect();
+//         await createView();
+//         console.log('Connected to database');
+//     } catch (error) {
+//         console.error('Database connection failed', error);
+//     }
+// });
+
+
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
     try {
