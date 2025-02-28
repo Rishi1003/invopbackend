@@ -208,7 +208,10 @@ async function processMaterialConsumptionCSV() {
         stream.on('data', (row) => {
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
+                // Find which values are empty or missing
+                const missingValues = Object.keys(row).filter(key => !row[key] || row[key].toString().trim() === '');
+
+                console.log(`Skipping row with missing values: ${missingValues.join(', ')}`);
                 return;
             }
 

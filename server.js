@@ -6,6 +6,10 @@ import cors from 'cors'
 import ExcelJS from 'exceljs';
 import fs from "fs"
 import https from "https"
+import path from 'path';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
+
 
 // Initialize Express and Prisma
 const app = express();
@@ -19,7 +23,63 @@ app.use(cors());
 app.get('/', (req, res) => {
     res.send('API is running...');
 });
+// Get the filename and directory from import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const uploadDir = path.join(__dirname, 'uploads');
+
+// Ensure the 'uploads' folder exists
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
+
+// Configure multer storage
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir); // Save files to the 'uploads' folder
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname); // Keep the original filename
+    }
+});
+
+
+// Create a multer instance with storage configuration
+const upload = multer({ storage });
+
+// API to handle multiple specific file uploads
+app.post("/upload", upload.array("files", 8), (req, res) => { // Max 8 files
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    // Validate the filenames to ensure they match expected CSV names
+    const expectedFiles = [
+        "time_master.csv",
+        "material_consumption.csv",
+        "material_master.csv",
+        "forecasting.csv",
+        "sap.csv",
+        "stock.csv",
+        "grn.csv",
+        "ppo.csv"
+    ];
+
+    const uploadedFileNames = req.files.map(file => file.originalname);
+    const missingFiles = expectedFiles.filter(file => !uploadedFileNames.includes(file));
+
+    if (missingFiles.length > 0) {
+        return res.status(400).json({
+            error: `Missing required files: ${missingFiles.join(", ")}`
+        });
+    }
+
+    res.json({
+        message: "Files uploaded successfully",
+        filenames: req.files.map(file => file.originalname)
+    });
+});
 
 app.get('/upload-data', async (req, res) => {
     try {
