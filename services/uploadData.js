@@ -39,7 +39,7 @@ async function processMaterialMasterCSV() {
         stream.on('data', (row) => {
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
+
                 return;
             }
 
@@ -116,7 +116,7 @@ async function processTimeMasterCSV() {
         stream.on('data', (row) => {
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
+
                 return;
             }
 
@@ -211,7 +211,7 @@ async function processMaterialConsumptionCSV() {
                 // Find which values are empty or missing
                 const missingValues = Object.keys(row).filter(key => !row[key] || row[key].toString().trim() === '');
 
-                console.log(`Skipping row with missing values: ${missingValues.join(', ')}`);
+
                 return;
             }
 
@@ -302,7 +302,6 @@ async function processMaterialForecastingCSV() {
         stream.on('data', (row) => {
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
                 return;
             }
 
@@ -399,15 +398,14 @@ async function processProposedSapCSV() {
         stream.on('data', (row) => {
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
+
                 return;
             }
 
             if (!row['Material No']) {
-                stream.destroy();
-                reject(new Error('Invalid row: Material No is required'));
                 return;
             }
+
 
             const reorderPt = parseInt(row['Reorder Pt'], 10);
             const maxStk = parseInt(row['Max Stk'], 10);
@@ -500,7 +498,6 @@ async function processGrnCSV() {
             const materialKey = Object.keys(row).find(key => key.trim().toLowerCase() === 'material');
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
                 return;
             }
 
@@ -599,7 +596,7 @@ async function processStockCSV() {
             const materialKey = Object.keys(row).find(key => key.trim().toLowerCase() === 'material');
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
+
                 return;
             }
 
@@ -697,7 +694,7 @@ async function processPpoCSV() {
             const quantityKey = Object.keys(row).find(key => key.trim().toLowerCase() === 'still to be delivered (qty)');
 
             if (Object.values(row).every(value => !value || value.toString().trim() === '')) {
-                console.log('Skipping empty row');
+
                 return;
             }
 
