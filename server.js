@@ -1030,7 +1030,7 @@ WHERE TO_DATE(
     SELECT 
         COALESCE("material_stock"."materialId", "material_grn"."materialId") AS "materialId",
         COALESCE("material_stock"."quantity", 0) AS "stockQuantity",
-        COALESCE("material_grn"."quantity", 10) AS "grnQuantity"
+        COALESCE("material_grn"."quantity", 0) AS "grnQuantity"
     FROM "material_stock" 
     FULL JOIN "material_grn" 
         ON "material_stock"."materialId" = "material_grn"."materialId";
