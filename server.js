@@ -46,7 +46,12 @@ const storage = multer.diskStorage({
 
 
 // Create a multer instance with storage configuration
-const upload = multer({ storage });
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+});
 
 // API to handle multiple specific file uploads
 app.post("/upload", upload.array("files", 8), (req, res) => { // Max 8 files
