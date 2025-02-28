@@ -873,47 +873,93 @@ GROUP BY m."materialId";
 
     await prisma.$executeRawUnsafe(
         `CREATE OR REPLACE VIEW Material_3Month_AvgConsumption AS 
-        WITH LastThreeMonths AS (
-            SELECT 
-                DISTINCT tm."Year", tm."Month",
-                TO_DATE(tm."Year"::TEXT || '-' || 
-                    CASE 
-                        WHEN tm."Month" = 'Jan' THEN '01'
-                        WHEN tm."Month" = 'Feb' THEN '02'
-                        WHEN tm."Month" = 'Mar' THEN '03'
-                        WHEN tm."Month" = 'Apr' THEN '04'
-                        WHEN tm."Month" = 'May' THEN '05'
-                        WHEN tm."Month" = 'Jun' THEN '06'
-                        WHEN tm."Month" = 'Jul' THEN '07'
-                        WHEN tm."Month" = 'Aug' THEN '08'
-                        WHEN tm."Month" = 'Sep' THEN '09'
-                        WHEN tm."Month" = 'Oct' THEN '10'
-                        WHEN tm."Month" = 'Nov' THEN '11'
-                        WHEN tm."Month" = 'Dec' THEN '12'
-                    END, 'YYYY-MM') AS DateValue
-            FROM time_master tm
-            ORDER BY DateValue DESC
-            LIMIT 3
-        )
-        SELECT 
-            m."materialId",
-            m."description",
-            COALESCE(SUM(mc."consumedQuantity"), 0) / 3.0 AS avgConsumption -- Ensuring 3 months are always considered
-        FROM 
-            material_master m
-        LEFT JOIN 
-            LastThreeMonths ltm 
-            ON TRUE  -- This ensures we always consider 3 months
-        LEFT JOIN 
-            time_master tm 
-            ON tm."Year" = ltm."Year" AND tm."Month" = ltm."Month"
-        LEFT JOIN 
-            material_consumption mc 
-            ON m."materialId" = mc."materialId" 
-            AND mc."timeId" = tm."Time_Id"
-        GROUP BY 
-            m."materialId", m."description";
+       WITH LastThreeMonths AS (
+    SELECT 
+        DISTINCT tm."Year", 
+        tm."Month",
+        TO_DATE(tm."Year"::TEXT || '-' || 
+            CASE tm."Month"
+                WHEN 'Jan' THEN '01'
+                WHEN 'Feb' THEN '02'
+                WHEN 'Mar' THEN '03'
+                WHEN 'Apr' THEN '04'
+                WHEN 'May' THEN '05'
+                WHEN 'Jun' THEN '06'
+                WHEN 'Jul' THEN '07'
+                WHEN 'Aug' THEN '08'
+                WHEN 'Sep' THEN '09'
+                WHEN 'Oct' THEN '10'
+                WHEN 'Nov' THEN '11'
+                WHEN 'Dec' THEN '12'
+            END, 'YYYY-MM') AS DateValue
+    FROM time_master tm
+    ORDER BY DateValue DESC
+    LIMIT 3
+)
+SELECT 
+    m."materialId",
+    m."description",
+    -- Calculate the total consumption and divide by 3
+    COALESCE(SUM(mc."consumedQuantity"), 0) / 3.0 AS avgConsumption
+FROM 
+    material_master m
+LEFT JOIN 
+    LastThreeMonths ltm ON TRUE  -- Join the last three months to every material
+LEFT JOIN 
+    time_master tm 
+    ON tm."Year" = ltm."Year" AND tm."Month" = ltm."Month"
+LEFT JOIN 
+    material_consumption mc 
+    ON m."materialId" = mc."materialId" 
+    AND mc."timeId" = tm."Time_Id"
+GROUP BY 
+    m."materialId", m."description"
+ORDER BY 
+    m."materialId"; 
     `)
+    // await prisma.$executeRawUnsafe(
+    //     `CREATE OR REPLACE VIEW Material_3Month_AvgConsumption AS 
+    //     WITH LastThreeMonths AS (
+    //         SELECT 
+    //             DISTINCT tm."Year", tm."Month",
+    //             TO_DATE(tm."Year"::TEXT || '-' || 
+    //                 CASE 
+    //                     WHEN tm."Month" = 'Jan' THEN '01'
+    //                     WHEN tm."Month" = 'Feb' THEN '02'
+    //                     WHEN tm."Month" = 'Mar' THEN '03'
+    //                     WHEN tm."Month" = 'Apr' THEN '04'
+    //                     WHEN tm."Month" = 'May' THEN '05'
+    //                     WHEN tm."Month" = 'Jun' THEN '06'
+    //                     WHEN tm."Month" = 'Jul' THEN '07'
+    //                     WHEN tm."Month" = 'Aug' THEN '08'
+    //                     WHEN tm."Month" = 'Sep' THEN '09'
+    //                     WHEN tm."Month" = 'Oct' THEN '10'
+    //                     WHEN tm."Month" = 'Nov' THEN '11'
+    //                     WHEN tm."Month" = 'Dec' THEN '12'
+    //                 END, 'YYYY-MM') AS DateValue
+    //         FROM time_master tm
+    //         ORDER BY DateValue DESC
+    //         LIMIT 3
+    //     )
+    //     SELECT 
+    //         m."materialId",
+    //         m."description",
+    //         COALESCE(SUM(mc."consumedQuantity"), 0) / 3.0 AS avgConsumption -- Ensuring 3 months are always considered
+    //     FROM 
+    //         material_master m
+    //     LEFT JOIN 
+    //         LastThreeMonths ltm 
+    //         ON TRUE  -- This ensures we always consider 3 months
+    //     LEFT JOIN 
+    //         time_master tm 
+    //         ON tm."Year" = ltm."Year" AND tm."Month" = ltm."Month"
+    //     LEFT JOIN 
+    //         material_consumption mc 
+    //         ON m."materialId" = mc."materialId" 
+    //         AND mc."timeId" = tm."Time_Id"
+    //     GROUP BY 
+    //         m."materialId", m."description";
+    // `)
 
     console.log('material_avgconsumption created');
 
