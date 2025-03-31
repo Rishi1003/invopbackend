@@ -284,6 +284,9 @@ async function processMaterialForecastingCSV() {
         throw new Error('material_forecasting.csv not found in uploads folder');
     }
 
+    await prisma.MaterialForecasting.deleteMany();
+    console.log("Deleted Existing Forecasting data")
+
     const records = [];
     const requiredColumns = ['MATERIAL ID', 'MONTH/YEAR', 'FORECASTING FOR NEXT MONTH'];
 
@@ -298,6 +301,7 @@ async function processMaterialForecastingCSV() {
                 reject(new Error(`Invalid CSV format. Missing columns: ${missingColumns.join(', ')}`));
             }
         });
+
 
         stream.on('data', (row) => {
 
