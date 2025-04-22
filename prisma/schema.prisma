@@ -1,8 +1,104 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// // This is your Prisma schema file,
+// // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// model Material {
+//   materialId  String @id @unique
+//   description String
+
+//   materialConsumptions MaterialConsumption[]
+//   materialForecastings MaterialForecasting[]
+//   materialDeliveries   MaterialDelivery[] // Reverse relation
+//   proposedQuantity     ProposedQuantity?     @relation("Material_Proposed")
+
+//   @@map("material_master")
+// }
+
+// model TimeMaster {
+//   Time_Id              String                @id @unique
+//   Month                String
+//   Year                 Int
+//   materialConsumptions MaterialConsumption[]
+
+//   @@map("time_master")
+// }
+
+// model MaterialConsumption {
+//   timeId           String
+//   materialId       String
+//   consumedQuantity Int
+
+//   timeMaster TimeMaster @relation(fields: [timeId], references: [Time_Id])
+//   material   Material   @relation(fields: [materialId], references: [materialId])
+
+//   @@id([timeId, materialId]) // Composite primary key
+//   @@map("material_consumption")
+// }
+
+// model MaterialForecasting {
+//   materialId              String
+//   monthYear               String
+//   forecastingForNextMonth Int
+
+//   material Material @relation(fields: [materialId], references: [materialId])
+
+//   @@id([materialId, monthYear]) // Composite primary key
+//   @@map("material_forecasting")
+// }
+
+// model MaterialDelivery {
+//   materialId         String
+//   supplierPlant      String // This combines Supplier ID & Name
+//   stillToBeDelivered Int
+
+//   material Material @relation(fields: [materialId], references: [materialId])
+
+//   @@id([materialId, supplierPlant]) // Composite primary key
+//   @@map("material_delivery")
+// }
+
+// model ProposedQuantity {
+//   materialNo String @id @unique
+//   reorderPt  Int
+//   maxStk     Int
+
+//   material Material @relation("Material_Proposed", fields: [materialNo], references: [materialId])
+
+//   @@map("proposed_sap") // Maps to the table "proposed_sap"
+// }
+
+// model MaterialGrn {
+//   materialId Int @id @unique
+//   quantity   Int
+
+//   @@map("material_grn")
+// }
+
+// model MaterialStock {
+//   materialId Int @id @unique
+//   quantity   Int
+
+//   @@map("material_stock")
+// }
+
+// model MaterialPpo {
+//   materialId      Int    @id @unique
+//   pendingQuantity Int
+//   supplier        String
+
+//   @@map("material_ppo")
+// }
 
 generator client {
   provider = "prisma-client-js"
@@ -17,19 +113,17 @@ model Material {
   materialId  String @id @unique
   description String
 
-  materialConsumptions MaterialConsumption[]
-  materialForecastings MaterialForecasting[]
-  materialDeliveries   MaterialDelivery[] // Reverse relation
-  proposedQuantity     ProposedQuantity?     @relation("Material_Proposed")
+  // Relations removed
+  // These fields still exist in other models
+  // but are no longer enforced as FK relationships
 
   @@map("material_master")
 }
 
 model TimeMaster {
-  Time_Id              String                @id @unique
-  Month                String
-  Year                 Int
-  materialConsumptions MaterialConsumption[]
+  Time_Id String @id @unique
+  Month   String
+  Year    Int
 
   @@map("time_master")
 }
@@ -39,10 +133,10 @@ model MaterialConsumption {
   materialId       String
   consumedQuantity Int
 
-  timeMaster TimeMaster @relation(fields: [timeId], references: [Time_Id])
-  material   Material   @relation(fields: [materialId], references: [materialId])
+  // FK relations removed
+  // You'll need to manually ensure data integrity now
 
-  @@id([timeId, materialId]) // Composite primary key
+  @@id([timeId, materialId])
   @@map("material_consumption")
 }
 
@@ -51,20 +145,16 @@ model MaterialForecasting {
   monthYear               String
   forecastingForNextMonth Int
 
-  material Material @relation(fields: [materialId], references: [materialId])
-
-  @@id([materialId, monthYear]) // Composite primary key
+  @@id([materialId, monthYear])
   @@map("material_forecasting")
 }
 
 model MaterialDelivery {
   materialId         String
-  supplierPlant      String // This combines Supplier ID & Name
+  supplierPlant      String
   stillToBeDelivered Int
 
-  material Material @relation(fields: [materialId], references: [materialId])
-
-  @@id([materialId, supplierPlant]) // Composite primary key
+  @@id([materialId, supplierPlant])
   @@map("material_delivery")
 }
 
@@ -73,9 +163,7 @@ model ProposedQuantity {
   reorderPt  Int
   maxStk     Int
 
-  material Material @relation("Material_Proposed", fields: [materialNo], references: [materialId])
-
-  @@map("proposed_sap") // Maps to the table "proposed_sap"
+  @@map("proposed_sap")
 }
 
 model MaterialGrn {
