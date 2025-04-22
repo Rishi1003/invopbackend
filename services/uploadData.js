@@ -302,6 +302,7 @@ async function processMaterialForecastingCSV() {
             }
         });
 
+        let totalRows = 0; // Initialize counter
 
         stream.on('data', (row) => {
 
@@ -333,10 +334,13 @@ async function processMaterialForecastingCSV() {
                 monthYear: row['MONTH/YEAR'],
                 forecastingForNextMonth: forecast,
             });
+
+            totalRows++;
         });
 
         stream.on('end', async () => {
             try {
+                console.log(`Total rows processed: ${totalRows}`);
                 for (const record of records) {
                     await prisma.materialForecasting.upsert({
                         where: {
