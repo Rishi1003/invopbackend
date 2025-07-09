@@ -187,3 +187,14 @@ model MaterialPpo {
 
   @@map("material_ppo")
 }
+
+model Ams {
+  id         String @id @default(cuid())
+  materialId Int
+  timeId     Int
+  forecast   Float
+  model      String
+  MAPE       Float
+
+  @@map("material_ams")
+}

@@ -3,6 +3,8 @@ import csv from 'csv-parser';
 import path from 'path';
 import prisma from '../utils/db.js';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
+
 
 // Convert import.meta.url to directory path
 const __filename = fileURLToPath(import.meta.url);
@@ -769,4 +771,103 @@ async function processPpoCSV() {
     });
 }
 
-export { processMaterialMasterCSV, processTimeMasterCSV, processMaterialConsumptionCSV, processMaterialForecastingCSV, processProposedSapCSV, processGrnCSV, processStockCSV, processPpoCSV };
+async function processAmsCSV() {
+    const csvFileName = 'ams.csv';
+    const csvFilePath = path.join(uploadsDir, csvFileName);
+    const scriptPath = path.join(__dirname, '..', 'ams.py');
+    const forecastCsvPath = path.join(__dirname, '..', 'forecast.csv');
+
+    if (!fs.existsSync(csvFilePath)) {
+        throw new Error('ams.csv not found in uploads folder');
+    }
+
+    return new Promise((resolve, reject) => {
+        const process = spawn('python', [scriptPath]);
+
+        console.log(`Running AMS script: ${scriptPath}`);
+
+        process.stdout.on('data', (data) => {
+            console.log(`[ams.py stdout]: ${data.toString().trim()}`);
+        });
+
+        let stderr = '';
+        process.stderr.on('data', (data) => {
+            stderr += data.toString();
+        });
+
+        process.on('close', (code) => {
+            if (code !== 0) {
+                return reject(new Error(`ams.py exited with code ${code}\n${stderr}`));
+            }
+
+            try {
+                fs.unlinkSync(csvFilePath);
+                console.log(`Deleted ${csvFileName} after processing.`);
+            } catch (err) {
+                return reject(new Error(`Failed to delete ${csvFileName}: ${err.message}`));
+            }
+
+            if (!fs.existsSync(forecastCsvPath)) {
+                return reject(new Error('forecast.csv not generated.'));
+            }
+
+            const records = [];
+
+            fs.createReadStream(forecastCsvPath)
+                .pipe(csv())
+                .on('data', (row) => {
+                    // Skip empty or malformed rows
+                    if (
+                        !row['Product'] ||
+                        !row['TimeID'] ||
+                        !row['Forecast'] ||
+                        !row['Model'] ||
+                        !row['MAPE']
+                    ) {
+                        return;
+                    }
+
+                    records.push({
+                        materialId: parseInt(row['Product'], 10),
+                        timeId: parseInt(row['TimeID'], 10),
+                        forecast: parseFloat(row['Forecast']),
+                        model: row['Model'],
+                        MAPE: parseFloat(row['MAPE']),
+                    });
+                })
+                .on('end', async () => {
+                    try {
+
+                        await prisma.ams.deleteMany();
+
+                        for (const record of records) {
+                            await prisma.ams.create({
+                                data: {
+                                    materialId: record.materialId,
+                                    timeId: record.timeId,
+                                    forecast: record.forecast,
+                                    model: record.model,
+                                    MAPE: record.MAPE,
+                                },
+                            });
+                        }
+
+                        console.log('forecast.csv processed and database updated.');
+                        fs.unlinkSync(forecastCsvPath);
+                        resolve();
+                    } catch (err) {
+                        reject(new Error(`Error updating DB: ${err.message}`));
+                    }
+                })
+                .on('error', (err) => {
+                    reject(new Error(`Error reading forecast.csv: ${err.message}`));
+                });
+        });
+
+        process.on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
+export { processMaterialMasterCSV, processTimeMasterCSV, processMaterialConsumptionCSV, processMaterialForecastingCSV, processProposedSapCSV, processGrnCSV, processStockCSV, processPpoCSV, processAmsCSV };

@@ -1,7 +1,7 @@
 // Import dependencies
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { processMaterialMasterCSV, processTimeMasterCSV, processMaterialConsumptionCSV, processMaterialForecastingCSV, processProposedSapCSV, processGrnCSV, processStockCSV, processPpoCSV } from "./services/uploadData.js"
+import { processMaterialMasterCSV, processTimeMasterCSV, processMaterialConsumptionCSV, processMaterialForecastingCSV, processProposedSapCSV, processGrnCSV, processStockCSV, processPpoCSV, processAmsCSV } from "./services/uploadData.js"
 import cors from 'cors'
 import ExcelJS from 'exceljs';
 import fs from "fs"
@@ -54,7 +54,7 @@ const upload = multer({
 });
 
 // API to handle multiple specific file uploads
-app.post("/upload", upload.array("files", 8), (req, res) => { // Max 8 files
+app.post("/upload", upload.array("files", 9), (req, res) => { // Max 8 files
     if (!req.files || req.files.length === 0) {
         return res.status(400).json({ error: "No files uploaded" });
     }
@@ -68,7 +68,8 @@ app.post("/upload", upload.array("files", 8), (req, res) => { // Max 8 files
         "sap.csv",
         "stock.csv",
         "grn.csv",
-        "ppo.csv"
+        "ppo.csv",
+        "ams.csv"
     ];
 
     const uploadedFileNames = req.files.map(file => file.originalname);
@@ -88,7 +89,7 @@ app.post("/upload", upload.array("files", 8), (req, res) => { // Max 8 files
 
 app.get('/upload-data', async (req, res) => {
     try {
-        await processMaterialMasterCSV();
+        // await processMaterialMasterCSV();
         await processTimeMasterCSV();
         await processMaterialConsumptionCSV();
         await processMaterialForecastingCSV();
@@ -96,6 +97,7 @@ app.get('/upload-data', async (req, res) => {
         await processGrnCSV();
         await processStockCSV();
         await processPpoCSV();
+        await processAmsCSV();
         res.send('CSV file processed successfully');
     } catch (error) {
         res.status(500).send({ message: error.message });
@@ -152,6 +154,148 @@ app.get('/consumption-table', async (req, res) => {
     }
 });
 
+app.get('/ams', async (req, res) => {
+    try {
+        const { page = 1, itemsPerPage = 10 } = req.query;
+
+        const pageNumber = parseInt(page);
+        const perPage = parseInt(itemsPerPage);
+
+        if (isNaN(pageNumber) || isNaN(perPage) || pageNumber < 1 || perPage < 1) {
+            return res.status(400).json({ message: 'Invalid pagination parameters' });
+        }
+
+        const offset = (pageNumber - 1) * perPage;
+
+        // Raw query with join
+        const data = await prisma.$queryRaw`
+      SELECT 
+        a."materialId",
+        a."timeId",
+        a."forecast",
+        a."model",
+        a."MAPE",
+        t."Month",
+        t."Year"
+      FROM "material_ams" a
+      JOIN "time_master" t ON CAST(a."timeId" AS TEXT) = t."Time_Id"
+      ORDER BY a."materialId" ASC
+      LIMIT ${perPage}
+      OFFSET ${offset}
+    `;
+
+        const countResult = await prisma.$queryRaw`
+      SELECT COUNT(*)::bigint AS count FROM "material_ams"
+    `;
+
+        const totalItems = Number(countResult[0].count);
+        const totalPages = Math.ceil(totalItems / perPage);
+
+        const formatted = data.map(row => ({
+            materialId: row.materialId,
+            timeId: row.timeId,
+            forecast: row.forecast,
+            model: row.model,
+            MAPE: row.MAPE,
+            period: `${row.Month}-${row.Year}`
+        }));
+
+        res.json({
+            totalItems,
+            currentPage: pageNumber,
+            totalPages,
+            data: formatted
+        });
+
+    } catch (error) {
+        console.error('Error in /ams route:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+app.get('/ams/download', async (req, res) => {
+    try {
+        // Get full AMS forecast data with month and year from joined time_master
+        const data = await prisma.$queryRaw`
+            SELECT 
+                a."materialId",
+                a."forecast",
+                a."model",
+                a."MAPE",
+                t."Month",
+                t."Year"
+            FROM "material_ams" a
+            JOIN "time_master" t ON CAST(a."timeId" AS TEXT) = t."Time_Id"
+            ORDER BY a."materialId" ASC
+        `;
+
+        // Define column mapping for headers
+        const columnMappings = {
+            materialId: "Material ID",
+            forecast: "Forecast Quantity",
+            model: "Forecasting Model",
+            MAPE: "MAPE (%)",
+            period: "Forecast Period"
+        };
+
+        // Format data for Excel
+        const processedData = data.map(row => {
+            const period = `${row.Month}-${row.Year}`;
+            return {
+                [columnMappings.materialId]: row.materialId,
+                [columnMappings.forecast]: row.forecast,
+                [columnMappings.model]: row.model,
+                [columnMappings.MAPE]: typeof row.MAPE === 'number' ? row.MAPE.toFixed(2) : row.MAPE,
+                [columnMappings.period]: period
+            };
+        });
+
+        // Create Excel workbook
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('AMS Forecast');
+
+        // Define columns
+        const headers = Object.values(columnMappings);
+        worksheet.columns = headers.map(header => ({
+            header,
+            key: header,
+            width: Math.max(18, header.length + 2)
+        }));
+
+        // Add rows
+        worksheet.addRows(processedData);
+
+        // Style header row
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFE0B2' } // light orange
+        };
+
+        worksheet.columns.forEach(column => {
+            column.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+
+        // Set headers for file download
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader(
+            'Content-Disposition',
+            'attachment; filename=ams-forecast.xlsx'
+        );
+
+        // Write Excel file to response
+        await workbook.xlsx.write(res);
+        res.end();
+
+    } catch (error) {
+        console.error('Error exporting AMS forecast:', error);
+        res.status(500).send({ message: 'Failed to export AMS data' });
+    }
+});
 
 app.get('/forecast-table', async (req, res) => {
     try {
