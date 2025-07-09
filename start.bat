@@ -19,5 +19,6 @@ REM === Start frontend ===
 start "Frontend" cmd /k "cd /d %FRONTEND_PATH% && npm run dev"
 
 echo Both frontend and backend are running.
+echo Go to http://localhost:5173 to access the application.
 echo Close these windows or stop the processes when done.
 pause
