@@ -41,8 +41,8 @@ def main():
 
     print("Starting AMS Forecasting...")
 
-    file_path = "C:\\Users\\Rishi\\Desktop\\Freelance_Projects\\backend_invop\\uploads\\ams.csv"
-    output_path = "C:\\Users\\Rishi\\Desktop\\Freelance_Projects\\backend_invop\\forecast.csv"
+    file_path = "C:\\User\\administrator.AMSLINDIA\\invopbackend-master\\backend\\uploads\\ams.csv"
+    output_path = "C:\\User\\administrator.AMSLINDIA\\invopbackend-master\\backend\\forecast.csv"
 
     data = read_data(file_path)
     if 'TimeID' not in data.columns:
