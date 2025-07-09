@@ -1,15 +1,6 @@
 @echo off
-REM === Set paths to backend and frontend ===
-set "BACKEND_PATH=C:\Users\administrator.AMSLINDIA\invopbackend-master\backend"
-set "FRONTEND_PATH=C:\Users\administrator.AMSLINDIA\invopbackend-master\frontend"
-
-REM === Start backend ===
-start "Backend" cmd /k ""cd /d %BACKEND_PATH% && npm run dev""
-
-REM === Start frontend ===
-start "Frontend" cmd /k ""cd /d %FRONTEND_PATH% && npm run dev""
-
+start "Backend" cmd /k run-backend.cmd
+start "Frontend" cmd /k run-frontend.cmd
 echo.
-echo ✅ Both servers launching in new terminals.
-echo ❌ Close the windows to stop them.
+echo ✅ Servers running. Close terminals to stop them open http://localhost:5173/ to access the app.
 pause
