@@ -9,8 +9,8 @@ set FRONTEND_PORT=5173
 
 REM === Kill the ports ===
 echo Killing ports...
-npx kill-port %BACKEND_PORT%
-npx kill-port %FRONTEND_PORT%
+npx kill-port %BACKEND_PORT% >nul 2>&1
+npx kill-port %FRONTEND_PORT% >nul 2>&1
 
 REM === Start backend ===
 start "Backend" cmd /k "cd /d %BACKEND_PATH% && npm run dev"
