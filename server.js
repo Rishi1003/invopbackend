@@ -17,7 +17,11 @@ const prisma = new PrismaClient();
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+app.use(cors({
+    origin: 'http://localhost', // or use '*' for all (not recommended for production)
+    credentials: true
+}));
 
 // Health check route
 app.get('/', (req, res) => {
