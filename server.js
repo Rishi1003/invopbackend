@@ -19,7 +19,7 @@ const prisma = new PrismaClient();
 app.use(express.json());
 
 app.use(cors({
-    origin: 'http://localhost', // or use '*' for all (not recommended for production)
+    origin: '*', // or use '*' for all (not recommended for production)
     credentials: true
 }));
 
@@ -93,7 +93,7 @@ app.post("/upload", upload.array("files", 9), (req, res) => { // Max 8 files
 
 app.get('/upload-data', async (req, res) => {
     try {
-        // await processMaterialMasterCSV();
+        await processMaterialMasterCSV();
         await processTimeMasterCSV();
         await processMaterialConsumptionCSV();
         await processMaterialForecastingCSV();
