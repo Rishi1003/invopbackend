@@ -23,6 +23,22 @@ app.use(cors({
     credentials: true
 }));
 
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+        console.log(`🔄 Rewriting ${req.url} → ${req.url.slice(4)}`);
+        req.url = req.url.slice(4); // Remove '/api'
+    }
+    next();
+});
+
+app.use((req, res, next) => {
+    console.log(`➡️  ${req.method} ${req.originalUrl}`);
+    console.log(`   🧑 From: ${req.ip}`);
+    console.log(`   🔗 Host: ${req.headers.host}`);
+    console.log(`   🛣️  Targeting: ${req.path}`);
+    next();
+});
+
 // Health check route
 app.get('/', (req, res) => {
     res.send('API is running...');
